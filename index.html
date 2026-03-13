@@ -382,8 +382,7 @@ let ablyClient = null, channel = null;
 // ── DETECT VIEW ──
 function detectView() {
   renderMimerUrl();
-  const params = new URLSearchParams(window.location.search);
-  if (params.has('mimer')) {
+  if (window.location.hash === '#mimer') {
     showScreen('mimerScreen');
     initMimer();
   } else {
@@ -393,7 +392,7 @@ function detectView() {
 
 function renderMimerUrl() {
   const base = window.location.href.split('?')[0].split('#')[0];
-  document.getElementById('mimerUrl').textContent = base + '?mimer';
+  document.getElementById('mimerUrl').textContent = base + '#mimer';
 }
 
 // ── ABLY INIT (board) ──
