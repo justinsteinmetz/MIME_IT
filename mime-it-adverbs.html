@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MIME IT! — Adverbs of Manner</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0d14;
+  --surface: #16161f;
+  --border: #2a2a3a;
+  --text: #f0eeff;
+  --muted: #6b6b8a;
+  --t1: #ff3f6c;
+  --t2: #00e5ff;
+  --t3: #aaff00;
+  --t4: #ff9f00;
+  --gold: #ffd700;
+  --green: #2dc653;
+  --red: #e63946;
+  --radius: 16px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0;
+}
+
+.screen { display: none; min-height: 100vh; position: relative; z-index: 1; }
+.screen.active { display: flex; flex-direction: column; }
+
+/* ══ SETUP ══ */
+#setupScreen { align-items: center; justify-content: center; padding: 40px 20px; text-align: center; }
+
+.game-logo {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(4rem, 14vw, 9rem);
+  line-height: 0.85; letter-spacing: 4px;
+  background: linear-gradient(135deg, #ff3f6c, #ff9f00, #aaff00);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  margin-bottom: 8px;
+}
+.game-subtitle { font-size: 1rem; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 48px; }
+
+.setup-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 32px; max-width: 520px; width: 100%; text-align: left;
+}
+.setup-box h2 { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 2px; margin-bottom: 24px; color: var(--gold); }
+.setup-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+
+.team-count-row { display: flex; gap: 10px; margin-bottom: 28px; }
+.count-btn {
+  flex: 1; padding: 14px; background: var(--bg); border: 2px solid var(--border);
+  border-radius: 10px; color: var(--text); font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.8rem; cursor: pointer; transition: all 0.15s;
+}
+.count-btn:hover { border-color: var(--gold); color: var(--gold); }
+.count-btn.active { border-color: var(--gold); background: rgba(255,215,0,0.08); color: var(--gold); }
+
+.team-names-grid { display: grid; gap: 12px; margin-bottom: 28px; }
+.team-name-row { display: flex; align-items: center; gap: 12px; }
+.team-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+.team-name-input {
+  flex: 1; background: var(--bg); border: 2px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 1rem; font-weight: 600; transition: border-color 0.2s;
+}
+.team-name-input:focus { outline: none; border-color: var(--gold); }
+
+.phone-url-box {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 16px; margin-bottom: 20px;
+}
+.phone-url-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
+.phone-url-value { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 1px; color: var(--gold); word-break: break-all; margin-bottom: 10px; }
+.phone-url-hint { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
+
+.start-btn {
+  width: 100%; padding: 18px;
+  background: linear-gradient(135deg, #ff3f6c, #ff9f00);
+  border: none; border-radius: 12px; color: #fff;
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem;
+  letter-spacing: 3px; cursor: pointer; transition: transform 0.1s;
+}
+.start-btn:hover { transform: scale(1.02); }
+
+/* ══ BOARD GAME SCREEN ══ */
+#gameScreen { padding: 0; }
+
+.topbar {
+  background: var(--surface); border-bottom: 1px solid var(--border);
+  padding: 14px 24px; display: flex; align-items: center;
+  justify-content: space-between; flex-wrap: wrap; gap: 10px;
+}
+.topbar-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 3px; color: var(--gold); }
+.round-badge {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
+  padding: 6px 16px; font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--muted);
+}
+.end-btn {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 700;
+}
+
+.scoreboard { display: flex; gap: 10px; padding: 16px 24px; overflow-x: auto; }
+.score-card {
+  flex: 1; min-width: 120px; border-radius: 14px; padding: 16px;
+  border: 2px solid transparent; transition: all 0.3s; position: relative; overflow: hidden;
+}
+.score-card.active-team { transform: scale(1.04); box-shadow: 0 0 24px currentColor; }
+.score-team-name { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; opacity: 0.7; margin-bottom: 4px; }
+.score-points { font-family: 'Bebas Neue', sans-serif; font-size: 3rem; line-height: 1; }
+.score-delta { font-size: 0.8rem; font-weight: 700; opacity: 0; transition: opacity 0.3s; position: absolute; top: 8px; right: 12px; }
+.score-delta.show { opacity: 1; }
+
+.board-main {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; padding: 32px 24px; gap: 24px;
+}
+
+.team-indicator {
+  font-size: 0.9rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 2px; padding: 8px 20px; border-radius: 20px; border: 2px solid currentColor;
+}
+
+.board-state-box {
+  background: var(--surface); border: 2px solid var(--border);
+  border-radius: 20px; padding: 40px 48px; text-align: center; max-width: 500px; width: 100%;
+}
+.board-state-icon { font-size: 4rem; margin-bottom: 16px; }
+.board-state-title { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 3px; margin-bottom: 8px; }
+.board-state-sub { font-size: 0.9rem; color: var(--muted); line-height: 1.6; }
+
+.board-hint-pill {
+  background: rgba(255,215,0,0.08); border: 1px solid rgba(255,215,0,0.25);
+  border-radius: 12px; padding: 12px 20px; text-align: center;
+  font-size: 0.9rem; color: var(--gold); max-width: 500px; width: 100%;
+}
+.board-hint-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; opacity: 0.6; margin-bottom: 4px; font-weight: 700; }
+
+.board-controls { display: flex; gap: 12px; max-width: 500px; width: 100%; flex-wrap: wrap; }
+
+.btn-send {
+  flex: 2; min-width: 180px; padding: 18px;
+  background: rgba(255,215,0,0.1); border: 2px solid var(--gold);
+  border-radius: 12px; color: var(--gold);
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-send:hover { background: var(--gold); color: var(--bg); }
+.btn-send:disabled { opacity: 0.25; cursor: default; background: rgba(255,215,0,0.1); color: var(--gold); }
+
+.btn-correct {
+  flex: 1; padding: 18px;
+  background: rgba(45,198,83,0.1); border: 2px solid var(--green);
+  border-radius: 12px; color: var(--green);
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-correct:hover { background: var(--green); color: #fff; }
+.btn-correct:disabled { opacity: 0.25; cursor: default; background: rgba(45,198,83,0.1); color: var(--green); }
+
+.btn-skip {
+  flex: 1; padding: 18px;
+  background: rgba(230,57,70,0.1); border: 2px solid var(--red);
+  border-radius: 12px; color: var(--red);
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px;
+  cursor: pointer; transition: all 0.15s;
+}
+.btn-skip:hover { background: var(--red); color: #fff; }
+.btn-skip:disabled { opacity: 0.25; cursor: default; background: rgba(230,57,70,0.1); color: var(--red); }
+
+@keyframes flash-correct { 0% { background: rgba(45,198,83,0.3); } 100% { background: transparent; } }
+.flash-correct { animation: flash-correct 0.6s ease; }
+
+/* ══ MIMER SCREEN (phone) ══ */
+#mimerScreen { align-items: center; justify-content: center; }
+
+.mimer-waiting {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; gap: 20px; padding: 32px; text-align: center;
+}
+.mimer-waiting-icon { font-size: 5rem; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+.mimer-waiting-text { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 3px; color: var(--muted); }
+.mimer-waiting-sub { font-size: 0.9rem; color: var(--muted); }
+
+.mimer-card {
+  display: none; flex-direction: column; align-items: center; justify-content: center;
+  min-height: 100vh; gap: 16px; padding: 40px 24px; text-align: center;
+  animation: cardIn 0.4s cubic-bezier(0.2, 0, 0, 1);
+}
+@keyframes cardIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+.mimer-card.show { display: flex; }
+
+.mimer-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 4px; color: var(--muted); font-weight: 700; }
+.mimer-verb { font-size: 1.1rem; color: var(--muted); font-weight: 600; }
+.mimer-adverb {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(4.5rem, 22vw, 9rem);
+  line-height: 0.9; letter-spacing: 4px;
+}
+.mimer-rule {
+  font-size: 0.85rem; color: var(--muted); margin-top: 12px;
+  border-top: 1px solid var(--border); padding-top: 18px; line-height: 1.7; max-width: 300px;
+}
+.mimer-rule strong { color: var(--text); }
+
+/* ══ WINNER SCREEN ══ */
+#winnerScreen { align-items: center; justify-content: center; text-align: center; padding: 40px 20px; }
+.winner-trophy { font-size: 6rem; margin-bottom: 16px; animation: bounce 1s infinite alternate; }
+@keyframes bounce { to { transform: translateY(-12px); } }
+.winner-label { font-size: 0.85rem; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.winner-name { font-family: 'Bebas Neue', sans-serif; font-size: clamp(3rem, 12vw, 7rem); line-height: 1; letter-spacing: 4px; margin-bottom: 4px; }
+.winner-score { font-size: 1.1rem; color: var(--muted); margin-bottom: 48px; }
+.final-scores { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; margin-bottom: 40px; }
+.final-card { background: var(--surface); border: 2px solid var(--border); border-radius: 14px; padding: 20px 28px; min-width: 120px; }
+.final-card.winner-card { border-color: var(--gold); }
+.final-name { font-size: 0.75rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.final-pts { font-family: 'Bebas Neue', sans-serif; font-size: 2.8rem; }
+.play-again-btn {
+  padding: 18px 48px; background: linear-gradient(135deg, #ff3f6c, #ff9f00);
+  border: none; border-radius: 12px; color: #fff;
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 3px; cursor: pointer; transition: transform 0.1s;
+}
+.play-again-btn:hover { transform: scale(1.03); }
+</style>
+</head>
+<body>
+
+<!-- ══ SETUP SCREEN ══ -->
+<div id="setupScreen" class="screen active">
+  <div class="game-logo">MIME<br>IT!</div>
+  <div class="game-subtitle">Adverbs of Manner</div>
+
+  <div class="setup-box">
+    <h2>⚙ GAME SETUP</h2>
+
+    <p class="setup-label">Number of teams</p>
+    <div class="team-count-row">
+      <button class="count-btn" onclick="setTeams(2)">2</button>
+      <button class="count-btn active" onclick="setTeams(3)">3</button>
+      <button class="count-btn" onclick="setTeams(4)">4</button>
+    </div>
+
+    <p class="setup-label">Team names</p>
+    <div class="team-names-grid" id="teamNamesGrid"></div>
+
+    <div class="phone-url-box">
+      <div class="phone-url-label">📱 Open this on your phone</div>
+      <div class="phone-url-value" id="mimerUrl">—</div>
+      <div class="phone-url-hint">Open this URL on your phone before the game. The adverb will appear there only — the board stays blank so the class can't see it.</div>
+    </div>
+
+    <button class="start-btn" onclick="startGame()">START GAME →</button>
+  </div>
+</div>
+
+<!-- ══ BOARD / GAME SCREEN ══ -->
+<div id="gameScreen" class="screen">
+  <div class="topbar">
+    <div class="topbar-title">MIME IT!</div>
+    <div class="round-badge" id="roundBadge">Round 1</div>
+    <button class="end-btn" onclick="endGame()">END GAME</button>
+  </div>
+
+  <div class="scoreboard" id="scoreboard"></div>
+
+  <div class="board-main">
+    <div class="team-indicator" id="teamIndicator">—</div>
+
+    <!-- State: ready -->
+    <div class="board-state-box" id="stateReady">
+      <div class="board-state-icon">📱</div>
+      <div class="board-state-title">READY TO DEAL</div>
+      <div class="board-state-sub">Mimer comes to the front. Tap <strong>SEND CARD TO PHONE</strong> — the adverb appears on your phone only. Nothing shows on the board.</div>
+    </div>
+
+    <!-- State: miming -->
+    <div class="board-state-box" id="stateMiming" style="display:none;">
+      <div class="board-state-icon">🎭</div>
+      <div class="board-state-title">CARD SENT</div>
+      <div class="board-state-sub" id="boardStateSub">Team is guessing…</div>
+    </div>
+
+    <!-- Teacher hint — visible on board, not on phone -->
+    <div class="board-hint-pill" id="boardHintPill" style="display:none;">
+      <div class="board-hint-label">Teacher hint (not shown on phone)</div>
+      <div id="boardHintText">—</div>
+    </div>
+
+    <div class="board-controls">
+      <button class="btn-send" id="btnSend" onclick="sendCard()">📱 SEND CARD TO PHONE</button>
+      <button class="btn-correct" id="btnCorrect" onclick="markCorrect()" disabled>✓ CORRECT</button>
+      <button class="btn-skip" id="btnSkip" onclick="skipCard()" disabled>✕ SKIP</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MIMER SCREEN (phone) ══ -->
+<div id="mimerScreen" class="screen">
+  <div class="mimer-waiting" id="mimerWaiting">
+    <div class="mimer-waiting-icon">📱</div>
+    <div class="mimer-waiting-text">WAITING FOR CARD…</div>
+    <div class="mimer-waiting-sub">Keep this screen open. Your adverb will appear here.</div>
+  </div>
+  <div class="mimer-card" id="mimerCard">
+    <div class="mimer-label">ACT THIS OUT — NO WORDS, NO SOUNDS</div>
+    <div class="mimer-verb" id="mimerVerb">while eating</div>
+    <div class="mimer-adverb" id="mimerAdverb">QUICKLY</div>
+    <div class="mimer-rule">
+      <strong>Adverbs of manner</strong> describe <strong>how</strong> someone does something.<br>
+      Use your body only — no speaking, no mouthing the word!
+    </div>
+  </div>
+</div>
+
+<!-- ══ WINNER SCREEN ══ -->
+<div id="winnerScreen" class="screen">
+  <div class="winner-trophy">🏆</div>
+  <div class="winner-label">Winner</div>
+  <div class="winner-name" id="winnerName">—</div>
+  <div class="winner-score" id="winnerScore">—</div>
+  <div class="final-scores" id="finalScores"></div>
+  <button class="play-again-btn" onclick="resetGame()">PLAY AGAIN</button>
+</div>
+
+<script>
+const cards = [
+  { adverb: "QUICKLY",     verb: "while eating",            hint: "Fast, rushed — no time to spare!" },
+  { adverb: "SLOWLY",      verb: "while walking",            hint: "Take your time... very slowly." },
+  { adverb: "QUIETLY",     verb: "while talking",            hint: "Shh — almost silent." },
+  { adverb: "LOUDLY",      verb: "while knocking",           hint: "The whole building can hear you." },
+  { adverb: "CAREFULLY",   verb: "while carrying something", hint: "Don't drop it — it might break." },
+  { adverb: "HAPPILY",     verb: "while dancing",            hint: "Pure joy — you're loving this." },
+  { adverb: "ANGRILY",     verb: "while typing",             hint: "You are NOT happy about this." },
+  { adverb: "NERVOUSLY",   verb: "while waiting",            hint: "Fidgety, shaky, uncertain." },
+  { adverb: "LAZILY",      verb: "while stretching",         hint: "You really can't be bothered." },
+  { adverb: "PROUDLY",     verb: "while walking in",         hint: "Head high — you're a champion." },
+  { adverb: "GENTLY",      verb: "while picking up a baby",  hint: "Soft, tender, delicate." },
+  { adverb: "BADLY",       verb: "while singing",            hint: "This is truly awful to listen to." },
+  { adverb: "HEAVILY",     verb: "while breathing",          hint: "Exhausted — just ran a marathon." },
+  { adverb: "WELL",        verb: "while playing guitar",     hint: "Really talented — it sounds great." },
+  { adverb: "SLEEPILY",    verb: "while reading",            hint: "Eyes closing... can't stay awake." },
+  { adverb: "EXCITEDLY",   verb: "while opening a gift",     hint: "Christmas morning energy." },
+  { adverb: "PAINFULLY",   verb: "while walking",            hint: "Every step hurts." },
+  { adverb: "IMPATIENTLY", verb: "while queuing",            hint: "Why is this taking SO long?" },
+  { adverb: "CONFIDENTLY", verb: "while presenting",         hint: "Knows exactly what they're doing." },
+  { adverb: "FRANTICALLY", verb: "while searching",          hint: "Panicked — lost something!" },
+];
+
+const teamColorHex = ['#ff3f6c','#00e5ff','#aaff00','#ff9f00'];
+const STORAGE_KEY = 'mimeit_card_v2';
+
+let numTeams = 3, teams = [], scores = [];
+let currentTeam = 0, currentCard = 0, roundNum = 1;
+let deck = [], cardSent = false;
+let lastCardTs = null;
+
+// ── DETECT VIEW ──
+function detectView() {
+  if (window.location.hash === '#mimer') {
+    showScreen('mimerScreen');
+    startMimerPolling();
+  } else {
+    showScreen('setupScreen');
+    renderMimerUrl();
+  }
+}
+
+function renderMimerUrl() {
+  const base = window.location.href.split('#')[0];
+  document.getElementById('mimerUrl').textContent = base + '#mimer';
+}
+
+// ── SETUP ──
+function setTeams(n) {
+  numTeams = n;
+  document.querySelectorAll('.count-btn').forEach((b,i) => b.classList.toggle('active', i === n-2));
+  renderTeamInputs();
+}
+
+function renderTeamInputs() {
+  const grid = document.getElementById('teamNamesGrid');
+  const defaults = ['Team A','Team B','Team C','Team D'];
+  grid.innerHTML = '';
+  for (let i = 0; i < numTeams; i++) {
+    const row = document.createElement('div');
+    row.className = 'team-name-row';
+    row.innerHTML = `
+      <div class="team-dot" style="background:${teamColorHex[i]}"></div>
+      <input class="team-name-input" id="tname${i}" value="${defaults[i]}" maxlength="20">
+    `;
+    grid.appendChild(row);
+  }
+}
+
+function startGame() {
+  teams = []; scores = [];
+  for (let i = 0; i < numTeams; i++) {
+    teams.push(document.getElementById('tname'+i).value.trim() || `Team ${String.fromCharCode(65+i)}`);
+    scores.push(0);
+  }
+  deck = shuffle([...cards]);
+  currentCard = 0; currentTeam = 0; roundNum = 1; cardSent = false;
+  localStorage.removeItem(STORAGE_KEY);
+  showScreen('gameScreen');
+  renderScoreboard();
+  setBoardReady();
+}
+
+// ── BOARD ──
+function renderScoreboard() {
+  const sb = document.getElementById('scoreboard');
+  sb.innerHTML = '';
+  teams.forEach((name, i) => {
+    const el = document.createElement('div');
+    el.className = 'score-card' + (i === currentTeam ? ' active-team' : '');
+    el.id = 'scard'+i;
+    el.style.borderColor = i === currentTeam ? teamColorHex[i] : 'var(--border)';
+    el.style.color = teamColorHex[i];
+    el.innerHTML = `
+      <div class="score-team-name">${name}</div>
+      <div class="score-points" id="spts${i}">${scores[i]}</div>
+      <div class="score-delta" id="sdelta${i}">+1</div>
+    `;
+    sb.appendChild(el);
+  });
+  document.getElementById('roundBadge').textContent = `Round ${roundNum}`;
+  const ind = document.getElementById('teamIndicator');
+  ind.textContent = teams[currentTeam] + "'s turn";
+  ind.style.color = teamColorHex[currentTeam];
+  ind.style.borderColor = teamColorHex[currentTeam];
+}
+
+function setBoardReady() {
+  document.getElementById('stateReady').style.display = 'flex';
+  document.getElementById('stateMiming').style.display = 'none';
+  document.getElementById('boardHintPill').style.display = 'none';
+  document.getElementById('btnSend').disabled = false;
+  document.getElementById('btnCorrect').disabled = true;
+  document.getElementById('btnSkip').disabled = true;
+}
+
+function sendCard() {
+  if (currentCard >= deck.length) {
+    deck = shuffle([...cards]);
+    currentCard = 0; roundNum++;
+    document.getElementById('roundBadge').textContent = `Round ${roundNum}`;
+  }
+  const card = deck[currentCard];
+
+  // Push to localStorage — phone picks this up
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    adverb: card.adverb,
+    verb: card.verb,
+    color: teamColorHex[currentTeam],
+    ts: Date.now()
+  }));
+
+  // Board: hide the adverb, show hint only
+  document.getElementById('stateReady').style.display = 'none';
+  document.getElementById('stateMiming').style.display = 'flex';
+  document.getElementById('boardStateSub').textContent = teams[currentTeam] + ' is guessing…';
+  document.getElementById('boardHintPill').style.display = 'block';
+  document.getElementById('boardHintText').textContent = card.hint;
+  document.getElementById('btnSend').disabled = true;
+  document.getElementById('btnCorrect').disabled = false;
+  document.getElementById('btnSkip').disabled = false;
+}
+
+function markCorrect() {
+  scores[currentTeam]++;
+  document.getElementById('spts'+currentTeam).textContent = scores[currentTeam];
+  const delta = document.getElementById('sdelta'+currentTeam);
+  delta.classList.add('show');
+  setTimeout(() => delta.classList.remove('show'), 1200);
+  const sc = document.getElementById('scard'+currentTeam);
+  sc.classList.add('flash-correct');
+  setTimeout(() => sc.classList.remove('flash-correct'), 600);
+  nextTurn();
+}
+
+function skipCard() { nextTurn(); }
+
+function nextTurn() {
+  currentCard++;
+  currentTeam = (currentTeam + 1) % numTeams;
+  localStorage.removeItem(STORAGE_KEY); // Clear phone
+  renderScoreboard();
+  setBoardReady();
+}
+
+function endGame() {
+  localStorage.removeItem(STORAGE_KEY);
+  const max = Math.max(...scores);
+  const ties = scores.filter(s => s === max).length;
+  const winIdx = scores.indexOf(max);
+  document.getElementById('winnerName').textContent = ties > 1 ? "IT'S A TIE!" : teams[winIdx].toUpperCase();
+  document.getElementById('winnerName').style.color = ties > 1 ? 'var(--gold)' : teamColorHex[winIdx];
+  document.getElementById('winnerScore').textContent = ties > 1 ? `${max} points each` : `${max} points`;
+  const fs = document.getElementById('finalScores');
+  fs.innerHTML = '';
+  const sorted = teams.map((n,i)=>({name:n,score:scores[i],color:teamColorHex[i]})).sort((a,b)=>b.score-a.score);
+  sorted.forEach(t => {
+    const c = document.createElement('div');
+    c.className = 'final-card' + (t.score === max ? ' winner-card' : '');
+    c.innerHTML = `<div class="final-name" style="color:${t.color}">${t.name}</div><div class="final-pts" style="color:${t.color}">${t.score}</div>`;
+    fs.appendChild(c);
+  });
+  showScreen('winnerScreen');
+}
+
+function resetGame() {
+  localStorage.removeItem(STORAGE_KEY);
+  showScreen('setupScreen');
+}
+
+// ── MIMER POLLING ──
+// Phone polls localStorage every 800ms for a new card
+function startMimerPolling() {
+  setInterval(() => {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      document.getElementById('mimerWaiting').style.display = 'flex';
+      document.getElementById('mimerCard').classList.remove('show');
+      lastCardTs = null;
+      return;
+    }
+    try {
+      const data = JSON.parse(raw);
+      if (data.ts === lastCardTs) return;
+      lastCardTs = data.ts;
+      document.getElementById('mimerAdverb').textContent = data.adverb;
+      document.getElementById('mimerAdverb').style.color = data.color;
+      document.getElementById('mimerVerb').textContent = data.verb;
+      document.getElementById('mimerWaiting').style.display = 'none';
+      document.getElementById('mimerCard').classList.add('show');
+    } catch(e) {}
+  }, 800);
+}
+
+// ── UTILS ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Init
+setTeams(3);
+detectView();
+window.addEventListener('hashchange', detectView);
+</script>
+</body>
+</html>
