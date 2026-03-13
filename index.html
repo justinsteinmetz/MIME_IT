@@ -382,7 +382,8 @@ let ablyClient = null, channel = null;
 // ── DETECT VIEW ──
 function detectView() {
   renderMimerUrl();
-  if (window.location.hash === '#mimer') {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('mimer')) {
     showScreen('mimerScreen');
     initMimer();
   } else {
@@ -391,8 +392,8 @@ function detectView() {
 }
 
 function renderMimerUrl() {
-  const base = window.location.href.split('#')[0];
-  document.getElementById('mimerUrl').textContent = base + '#mimer';
+  const base = window.location.href.split('?')[0].split('#')[0];
+  document.getElementById('mimerUrl').textContent = base + '?mimer';
 }
 
 // ── ABLY INIT (board) ──
@@ -657,7 +658,7 @@ function shuffle(arr) {
 
 setTeams(3);
 detectView();
-window.addEventListener('hashchange', detectView);
+
 </script>
 </body>
 </html>
