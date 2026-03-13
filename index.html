@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MIME IT! — Adverbs of Manner</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.ably.com/lib/ably.min-2.js"></script>
 <style>
 :root {
   --bg: #0d0d14;
@@ -21,46 +22,47 @@
   --red: #e63946;
   --radius: 16px;
 }
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
 body::before {
-  content: '';
-  position: fixed; inset: 0;
+  content: ''; position: fixed; inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
   pointer-events: none; z-index: 0;
 }
-
 .screen { display: none; min-height: 100vh; position: relative; z-index: 1; }
 .screen.active { display: flex; flex-direction: column; }
 
 /* ══ SETUP ══ */
 #setupScreen { align-items: center; justify-content: center; padding: 40px 20px; text-align: center; }
-
 .game-logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(4rem, 14vw, 9rem);
+  font-family: 'Bebas Neue', sans-serif; font-size: clamp(4rem, 14vw, 9rem);
   line-height: 0.85; letter-spacing: 4px;
   background: linear-gradient(135deg, #ff3f6c, #ff9f00, #aaff00);
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-  margin-bottom: 8px;
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 8px;
 }
 .game-subtitle { font-size: 1rem; color: var(--muted); letter-spacing: 3px; text-transform: uppercase; margin-bottom: 48px; }
 
 .setup-box {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 32px; max-width: 520px; width: 100%; text-align: left;
+  border-radius: var(--radius); padding: 32px; max-width: 540px; width: 100%; text-align: left;
 }
 .setup-box h2 { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 2px; margin-bottom: 24px; color: var(--gold); }
-.setup-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+.setup-label { font-size: 0.85rem; color: var(--muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; display: block; }
+
+/* Ably key input */
+.api-row { display: flex; gap: 10px; margin-bottom: 8px; }
+.api-input {
+  flex: 1; background: var(--bg); border: 2px solid var(--border);
+  border-radius: 8px; padding: 10px 14px; color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
+  transition: border-color 0.2s;
+}
+.api-input:focus { outline: none; border-color: var(--gold); }
+.api-hint {
+  font-size: 0.75rem; color: var(--muted); line-height: 1.5; margin-bottom: 24px;
+}
+.api-hint a { color: var(--gold); text-decoration: none; }
+.api-hint a:hover { text-decoration: underline; }
 
 .team-count-row { display: flex; gap: 10px; margin-bottom: 28px; }
 .count-btn {
@@ -81,37 +83,40 @@ body::before {
 }
 .team-name-input:focus { outline: none; border-color: var(--gold); }
 
+/* Phone URL box */
 .phone-url-box {
   background: var(--bg); border: 1px solid var(--border);
   border-radius: 10px; padding: 16px; margin-bottom: 20px;
 }
 .phone-url-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--muted); font-weight: 700; margin-bottom: 8px; }
-.phone-url-value { font-family: 'Bebas Neue', sans-serif; font-size: 1rem; letter-spacing: 1px; color: var(--gold); word-break: break-all; margin-bottom: 10px; }
+.phone-url-value { font-family: 'Bebas Neue', sans-serif; font-size: 0.95rem; letter-spacing: 1px; color: var(--gold); word-break: break-all; margin-bottom: 10px; }
 .phone-url-hint { font-size: 0.78rem; color: var(--muted); line-height: 1.5; }
 
 .start-btn {
-  width: 100%; padding: 18px;
-  background: linear-gradient(135deg, #ff3f6c, #ff9f00);
+  width: 100%; padding: 18px; background: linear-gradient(135deg, #ff3f6c, #ff9f00);
   border: none; border-radius: 12px; color: #fff;
-  font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem;
-  letter-spacing: 3px; cursor: pointer; transition: transform 0.1s;
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 3px; cursor: pointer; transition: transform 0.1s;
 }
 .start-btn:hover { transform: scale(1.02); }
+.start-btn:disabled { opacity: 0.4; transform: none; cursor: default; }
 
-/* ══ BOARD GAME SCREEN ══ */
+/* ══ BOARD GAME ══ */
 #gameScreen { padding: 0; }
-
 .topbar {
   background: var(--surface); border-bottom: 1px solid var(--border);
-  padding: 14px 24px; display: flex; align-items: center;
-  justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
 }
 .topbar-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 3px; color: var(--gold); }
 .round-badge {
   background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
-  padding: 6px 16px; font-size: 0.8rem; font-weight: 700; letter-spacing: 1px;
-  text-transform: uppercase; color: var(--muted);
+  padding: 6px 16px; font-size: 0.8rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--muted);
 }
+.conn-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--muted); display: inline-block; margin-right: 6px;
+  transition: background 0.3s;
+}
+.conn-dot.connected { background: var(--green); }
+.conn-status { font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; }
 .end-btn {
   background: none; border: 1px solid var(--border); color: var(--muted);
   padding: 6px 14px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 700;
@@ -132,12 +137,10 @@ body::before {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center; padding: 32px 24px; gap: 24px;
 }
-
 .team-indicator {
   font-size: 0.9rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: 2px; padding: 8px 20px; border-radius: 20px; border: 2px solid currentColor;
 }
-
 .board-state-box {
   background: var(--surface); border: 2px solid var(--border);
   border-radius: 20px; padding: 40px 48px; text-align: center; max-width: 500px; width: 100%;
@@ -154,33 +157,24 @@ body::before {
 .board-hint-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 2px; opacity: 0.6; margin-bottom: 4px; font-weight: 700; }
 
 .board-controls { display: flex; gap: 12px; max-width: 500px; width: 100%; flex-wrap: wrap; }
-
 .btn-send {
   flex: 2; min-width: 180px; padding: 18px;
-  background: rgba(255,215,0,0.1); border: 2px solid var(--gold);
-  border-radius: 12px; color: var(--gold);
-  font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px;
-  cursor: pointer; transition: all 0.15s;
+  background: rgba(255,215,0,0.1); border: 2px solid var(--gold); border-radius: 12px; color: var(--gold);
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px; cursor: pointer; transition: all 0.15s;
 }
 .btn-send:hover { background: var(--gold); color: var(--bg); }
 .btn-send:disabled { opacity: 0.25; cursor: default; background: rgba(255,215,0,0.1); color: var(--gold); }
-
 .btn-correct {
   flex: 1; padding: 18px;
-  background: rgba(45,198,83,0.1); border: 2px solid var(--green);
-  border-radius: 12px; color: var(--green);
-  font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px;
-  cursor: pointer; transition: all 0.15s;
+  background: rgba(45,198,83,0.1); border: 2px solid var(--green); border-radius: 12px; color: var(--green);
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px; cursor: pointer; transition: all 0.15s;
 }
 .btn-correct:hover { background: var(--green); color: #fff; }
 .btn-correct:disabled { opacity: 0.25; cursor: default; background: rgba(45,198,83,0.1); color: var(--green); }
-
 .btn-skip {
   flex: 1; padding: 18px;
-  background: rgba(230,57,70,0.1); border: 2px solid var(--red);
-  border-radius: 12px; color: var(--red);
-  font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px;
-  cursor: pointer; transition: all 0.15s;
+  background: rgba(230,57,70,0.1); border: 2px solid var(--red); border-radius: 12px; color: var(--red);
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem; letter-spacing: 2px; cursor: pointer; transition: all 0.15s;
 }
 .btn-skip:hover { background: var(--red); color: #fff; }
 .btn-skip:disabled { opacity: 0.25; cursor: default; background: rgba(230,57,70,0.1); color: var(--red); }
@@ -188,9 +182,8 @@ body::before {
 @keyframes flash-correct { 0% { background: rgba(45,198,83,0.3); } 100% { background: transparent; } }
 .flash-correct { animation: flash-correct 0.6s ease; }
 
-/* ══ MIMER SCREEN (phone) ══ */
+/* ══ MIMER SCREEN ══ */
 #mimerScreen { align-items: center; justify-content: center; }
-
 .mimer-waiting {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   min-height: 100vh; gap: 20px; padding: 32px; text-align: center;
@@ -199,6 +192,7 @@ body::before {
 @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 .mimer-waiting-text { font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 3px; color: var(--muted); }
 .mimer-waiting-sub { font-size: 0.9rem; color: var(--muted); }
+.mimer-conn { font-size: 0.75rem; color: var(--muted); display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px; }
 
 .mimer-card {
   display: none; flex-direction: column; align-items: center; justify-content: center;
@@ -210,18 +204,14 @@ body::before {
 
 .mimer-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 4px; color: var(--muted); font-weight: 700; }
 .mimer-verb { font-size: 1.1rem; color: var(--muted); font-weight: 600; }
-.mimer-adverb {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(4.5rem, 22vw, 9rem);
-  line-height: 0.9; letter-spacing: 4px;
-}
+.mimer-adverb { font-family: 'Bebas Neue', sans-serif; font-size: clamp(4.5rem, 22vw, 9rem); line-height: 0.9; letter-spacing: 4px; }
 .mimer-rule {
   font-size: 0.85rem; color: var(--muted); margin-top: 12px;
   border-top: 1px solid var(--border); padding-top: 18px; line-height: 1.7; max-width: 300px;
 }
 .mimer-rule strong { color: var(--text); }
 
-/* ══ WINNER SCREEN ══ */
+/* ══ WINNER ══ */
 #winnerScreen { align-items: center; justify-content: center; text-align: center; padding: 40px 20px; }
 .winner-trophy { font-size: 6rem; margin-bottom: 16px; animation: bounce 1s infinite alternate; }
 @keyframes bounce { to { transform: translateY(-12px); } }
@@ -236,14 +226,24 @@ body::before {
 .play-again-btn {
   padding: 18px 48px; background: linear-gradient(135deg, #ff3f6c, #ff9f00);
   border: none; border-radius: 12px; color: #fff;
-  font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 3px; cursor: pointer; transition: transform 0.1s;
+  font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; letter-spacing: 3px; cursor: pointer;
 }
-.play-again-btn:hover { transform: scale(1.03); }
+.play-again-btn:hover { opacity: 0.9; }
+
+/* Error toast */
+.toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--red); color: #fff; padding: 12px 24px; border-radius: 10px;
+  font-weight: 700; font-size: 0.9rem; z-index: 100; display: none;
+}
+.toast.show { display: block; }
 </style>
 </head>
 <body>
 
-<!-- ══ SETUP SCREEN ══ -->
+<div class="toast" id="toast"></div>
+
+<!-- ══ SETUP ══ -->
 <div id="setupScreen" class="screen active">
   <div class="game-logo">MIME<br>IT!</div>
   <div class="game-subtitle">Adverbs of Manner</div>
@@ -251,31 +251,40 @@ body::before {
   <div class="setup-box">
     <h2>⚙ GAME SETUP</h2>
 
-    <p class="setup-label">Number of teams</p>
+    <label class="setup-label">Ably API Key</label>
+    <div class="api-row">
+      <input class="api-input" id="ablyKey" type="password" placeholder="Paste your Ably API key here…">
+    </div>
+    <p class="api-hint">
+      Free key from <a href="https://ably.com" target="_blank">ably.com</a> — sign up, create an app, copy the API key. This is what syncs the board to your phone in real time. The key is never stored or sent anywhere except directly to Ably.
+    </p>
+
+    <label class="setup-label">Number of teams</label>
     <div class="team-count-row">
       <button class="count-btn" onclick="setTeams(2)">2</button>
       <button class="count-btn active" onclick="setTeams(3)">3</button>
       <button class="count-btn" onclick="setTeams(4)">4</button>
     </div>
 
-    <p class="setup-label">Team names</p>
+    <label class="setup-label">Team names</label>
     <div class="team-names-grid" id="teamNamesGrid"></div>
 
     <div class="phone-url-box">
       <div class="phone-url-label">📱 Open this on your phone</div>
       <div class="phone-url-value" id="mimerUrl">—</div>
-      <div class="phone-url-hint">Open this URL on your phone before the game. The adverb will appear there only — the board stays blank so the class can't see it.</div>
+      <div class="phone-url-hint">Open on your phone before the game starts. The adverb will appear there — not on the board.</div>
     </div>
 
-    <button class="start-btn" onclick="startGame()">START GAME →</button>
+    <button class="start-btn" id="startBtn" onclick="startGame()">START GAME →</button>
   </div>
 </div>
 
-<!-- ══ BOARD / GAME SCREEN ══ -->
+<!-- ══ BOARD ══ -->
 <div id="gameScreen" class="screen">
   <div class="topbar">
     <div class="topbar-title">MIME IT!</div>
     <div class="round-badge" id="roundBadge">Round 1</div>
+    <div class="conn-status"><span class="conn-dot" id="connDot"></span><span id="connLabel">Connecting…</span></div>
     <button class="end-btn" onclick="endGame()">END GAME</button>
   </div>
 
@@ -284,23 +293,20 @@ body::before {
   <div class="board-main">
     <div class="team-indicator" id="teamIndicator">—</div>
 
-    <!-- State: ready -->
     <div class="board-state-box" id="stateReady">
       <div class="board-state-icon">📱</div>
       <div class="board-state-title">READY TO DEAL</div>
-      <div class="board-state-sub">Mimer comes to the front. Tap <strong>SEND CARD TO PHONE</strong> — the adverb appears on your phone only. Nothing shows on the board.</div>
+      <div class="board-state-sub">Mimer comes to the front. Tap <strong>SEND CARD TO PHONE</strong> — the adverb appears on your phone only.</div>
     </div>
 
-    <!-- State: miming -->
     <div class="board-state-box" id="stateMiming" style="display:none;">
       <div class="board-state-icon">🎭</div>
       <div class="board-state-title">CARD SENT</div>
       <div class="board-state-sub" id="boardStateSub">Team is guessing…</div>
     </div>
 
-    <!-- Teacher hint — visible on board, not on phone -->
     <div class="board-hint-pill" id="boardHintPill" style="display:none;">
-      <div class="board-hint-label">Teacher hint (not shown on phone)</div>
+      <div class="board-hint-label">Teacher hint — not shown on phone</div>
       <div id="boardHintText">—</div>
     </div>
 
@@ -312,12 +318,13 @@ body::before {
   </div>
 </div>
 
-<!-- ══ MIMER SCREEN (phone) ══ -->
+<!-- ══ MIMER (phone) ══ -->
 <div id="mimerScreen" class="screen">
   <div class="mimer-waiting" id="mimerWaiting">
     <div class="mimer-waiting-icon">📱</div>
     <div class="mimer-waiting-text">WAITING FOR CARD…</div>
-    <div class="mimer-waiting-sub">Keep this screen open. Your adverb will appear here.</div>
+    <div class="mimer-waiting-sub">Keep this screen open. Your adverb will appear when the teacher sends it.</div>
+    <div class="mimer-conn"><span class="conn-dot" id="mimerConnDot"></span><span id="mimerConnLabel">Connecting…</span></div>
   </div>
   <div class="mimer-card" id="mimerCard">
     <div class="mimer-label">ACT THIS OUT — NO WORDS, NO SOUNDS</div>
@@ -325,12 +332,12 @@ body::before {
     <div class="mimer-adverb" id="mimerAdverb">QUICKLY</div>
     <div class="mimer-rule">
       <strong>Adverbs of manner</strong> describe <strong>how</strong> someone does something.<br>
-      Use your body only — no speaking, no mouthing the word!
+      Body only — no speaking, no mouthing the word!
     </div>
   </div>
 </div>
 
-<!-- ══ WINNER SCREEN ══ -->
+<!-- ══ WINNER ══ -->
 <div id="winnerScreen" class="screen">
   <div class="winner-trophy">🏆</div>
   <div class="winner-label">Winner</div>
@@ -365,27 +372,86 @@ const cards = [
 ];
 
 const teamColorHex = ['#ff3f6c','#00e5ff','#aaff00','#ff9f00'];
-const STORAGE_KEY = 'mimeit_card_v2';
+const CHANNEL_NAME = 'mimeit-game';
 
 let numTeams = 3, teams = [], scores = [];
 let currentTeam = 0, currentCard = 0, roundNum = 1;
-let deck = [], cardSent = false;
-let lastCardTs = null;
+let deck = [];
+let ablyClient = null, channel = null;
 
 // ── DETECT VIEW ──
 function detectView() {
+  renderMimerUrl();
   if (window.location.hash === '#mimer') {
     showScreen('mimerScreen');
-    startMimerPolling();
+    initMimer();
   } else {
     showScreen('setupScreen');
-    renderMimerUrl();
   }
 }
 
 function renderMimerUrl() {
   const base = window.location.href.split('#')[0];
   document.getElementById('mimerUrl').textContent = base + '#mimer';
+}
+
+// ── ABLY INIT (board) ──
+function initAbly(apiKey) {
+  return new Promise((resolve, reject) => {
+    try {
+      ablyClient = new Ably.Realtime({ key: apiKey });
+      ablyClient.connection.on('connected', () => {
+        setConnStatus(true);
+        channel = ablyClient.channels.get(CHANNEL_NAME);
+        resolve();
+      });
+      ablyClient.connection.on('failed', () => reject(new Error('Connection failed')));
+      ablyClient.connection.on('disconnected', () => setConnStatus(false));
+      ablyClient.connection.on('suspended', () => setConnStatus(false));
+    } catch(e) { reject(e); }
+  });
+}
+
+// ── ABLY INIT (mimer phone) ──
+function initMimer() {
+  // Phone needs API key too — prompt once
+  let apiKey = sessionStorage.getItem('mimeit_key');
+  if (!apiKey) {
+    apiKey = prompt('Enter your Ably API key to connect:');
+    if (!apiKey) { showToast('No API key — cannot connect.'); return; }
+    sessionStorage.setItem('mimeit_key', apiKey);
+  }
+  try {
+    ablyClient = new Ably.Realtime({ key: apiKey });
+    ablyClient.connection.on('connected', () => {
+      setMimerConn(true);
+      channel = ablyClient.channels.get(CHANNEL_NAME);
+      channel.subscribe('card', (msg) => {
+        const data = msg.data;
+        if (data.clear) {
+          clearMimerCard();
+        } else {
+          showMimerCard(data.adverb, data.verb, data.color);
+        }
+      });
+    });
+    ablyClient.connection.on('disconnected', () => setMimerConn(false));
+    ablyClient.connection.on('suspended', () => setMimerConn(false));
+    ablyClient.connection.on('failed', () => {
+      setMimerConn(false);
+      showToast('Connection failed. Check your API key.');
+    });
+  } catch(e) { showToast('Error: ' + e.message); }
+}
+
+function setConnStatus(connected) {
+  document.getElementById('connDot').classList.toggle('connected', connected);
+  document.getElementById('connLabel').textContent = connected ? 'Connected' : 'Disconnected';
+}
+
+function setMimerConn(connected) {
+  document.getElementById('mimerConnDot').classList.toggle('connected', connected);
+  document.getElementById('mimerConnLabel').textContent = connected ? 'Connected — waiting for card' : 'Reconnecting…';
 }
 
 // ── SETUP ──
@@ -410,18 +476,43 @@ function renderTeamInputs() {
   }
 }
 
-function startGame() {
+async function startGame() {
+  const apiKey = document.getElementById('ablyKey').value.trim();
+  if (!apiKey) { showToast('Please enter your Ably API key.'); return; }
+
+  // Save key for phone prompt convenience
+  sessionStorage.setItem('mimeit_key', apiKey);
+
+  const btn = document.getElementById('startBtn');
+  btn.disabled = true;
+  btn.textContent = 'CONNECTING…';
+
+  try {
+    await initAbly(apiKey);
+  } catch(e) {
+    showToast('Could not connect to Ably. Check your API key.');
+    btn.disabled = false;
+    btn.textContent = 'START GAME →';
+    return;
+  }
+
   teams = []; scores = [];
   for (let i = 0; i < numTeams; i++) {
     teams.push(document.getElementById('tname'+i).value.trim() || `Team ${String.fromCharCode(65+i)}`);
     scores.push(0);
   }
   deck = shuffle([...cards]);
-  currentCard = 0; currentTeam = 0; roundNum = 1; cardSent = false;
-  localStorage.removeItem(STORAGE_KEY);
+  currentCard = 0; currentTeam = 0; roundNum = 1;
+
+  // Clear phone
+  channel.publish('card', { clear: true });
+
   showScreen('gameScreen');
   renderScoreboard();
   setBoardReady();
+
+  btn.disabled = false;
+  btn.textContent = 'START GAME →';
 }
 
 // ── BOARD ──
@@ -465,15 +556,13 @@ function sendCard() {
   }
   const card = deck[currentCard];
 
-  // Push to localStorage — phone picks this up
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+  // Publish to Ably — phone receives this
+  channel.publish('card', {
     adverb: card.adverb,
     verb: card.verb,
-    color: teamColorHex[currentTeam],
-    ts: Date.now()
-  }));
+    color: teamColorHex[currentTeam]
+  });
 
-  // Board: hide the adverb, show hint only
   document.getElementById('stateReady').style.display = 'none';
   document.getElementById('stateMiming').style.display = 'flex';
   document.getElementById('boardStateSub').textContent = teams[currentTeam] + ' is guessing…';
@@ -501,13 +590,13 @@ function skipCard() { nextTurn(); }
 function nextTurn() {
   currentCard++;
   currentTeam = (currentTeam + 1) % numTeams;
-  localStorage.removeItem(STORAGE_KEY); // Clear phone
+  if (channel) channel.publish('card', { clear: true });
   renderScoreboard();
   setBoardReady();
 }
 
 function endGame() {
-  localStorage.removeItem(STORAGE_KEY);
+  if (channel) channel.publish('card', { clear: true });
   const max = Math.max(...scores);
   const ties = scores.filter(s => s === max).length;
   const winIdx = scores.indexOf(max);
@@ -516,49 +605,46 @@ function endGame() {
   document.getElementById('winnerScore').textContent = ties > 1 ? `${max} points each` : `${max} points`;
   const fs = document.getElementById('finalScores');
   fs.innerHTML = '';
-  const sorted = teams.map((n,i)=>({name:n,score:scores[i],color:teamColorHex[i]})).sort((a,b)=>b.score-a.score);
-  sorted.forEach(t => {
-    const c = document.createElement('div');
-    c.className = 'final-card' + (t.score === max ? ' winner-card' : '');
-    c.innerHTML = `<div class="final-name" style="color:${t.color}">${t.name}</div><div class="final-pts" style="color:${t.color}">${t.score}</div>`;
-    fs.appendChild(c);
-  });
+  teams.map((n,i)=>({name:n,score:scores[i],color:teamColorHex[i]}))
+    .sort((a,b)=>b.score-a.score)
+    .forEach(t => {
+      const c = document.createElement('div');
+      c.className = 'final-card' + (t.score === max ? ' winner-card' : '');
+      c.innerHTML = `<div class="final-name" style="color:${t.color}">${t.name}</div><div class="final-pts" style="color:${t.color}">${t.score}</div>`;
+      fs.appendChild(c);
+    });
   showScreen('winnerScreen');
 }
 
 function resetGame() {
-  localStorage.removeItem(STORAGE_KEY);
+  if (ablyClient) { ablyClient.close(); ablyClient = null; channel = null; }
   showScreen('setupScreen');
 }
 
-// ── MIMER POLLING ──
-// Phone polls localStorage every 800ms for a new card
-function startMimerPolling() {
-  setInterval(() => {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      document.getElementById('mimerWaiting').style.display = 'flex';
-      document.getElementById('mimerCard').classList.remove('show');
-      lastCardTs = null;
-      return;
-    }
-    try {
-      const data = JSON.parse(raw);
-      if (data.ts === lastCardTs) return;
-      lastCardTs = data.ts;
-      document.getElementById('mimerAdverb').textContent = data.adverb;
-      document.getElementById('mimerAdverb').style.color = data.color;
-      document.getElementById('mimerVerb').textContent = data.verb;
-      document.getElementById('mimerWaiting').style.display = 'none';
-      document.getElementById('mimerCard').classList.add('show');
-    } catch(e) {}
-  }, 800);
+// ── MIMER CARD DISPLAY ──
+function showMimerCard(adverb, verb, color) {
+  document.getElementById('mimerAdverb').textContent = adverb;
+  document.getElementById('mimerAdverb').style.color = color;
+  document.getElementById('mimerVerb').textContent = verb;
+  document.getElementById('mimerWaiting').style.display = 'none';
+  document.getElementById('mimerCard').classList.add('show');
+}
+
+function clearMimerCard() {
+  document.getElementById('mimerWaiting').style.display = 'flex';
+  document.getElementById('mimerCard').classList.remove('show');
 }
 
 // ── UTILS ──
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
 }
 
 function shuffle(arr) {
@@ -569,7 +655,6 @@ function shuffle(arr) {
   return arr;
 }
 
-// Init
 setTeams(3);
 detectView();
 window.addEventListener('hashchange', detectView);
